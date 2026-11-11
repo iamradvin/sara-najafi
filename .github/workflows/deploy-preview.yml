@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build the web app
-        run: pnpm --filter @attractory/web build
+        run: pnpm exec turbo run build --filter=@attractory/web...
         env:
           GITHUB_PAGES: "true"
       - name: Export public static pages
