@@ -10,10 +10,12 @@ const basePath = "/sara-najafi";
 const publicRoutes = new Set([
   "/",
   "/about",
+  "/articles",
   "/courses",
   "/articles/build-a-consistent-workout-habit",
   "/articles/simple-workout-plan-that-lasts",
   "/articles/recovery-is-part-of-training",
+  "/contact",
   "/design-system",
   "/login",
   "/register",
