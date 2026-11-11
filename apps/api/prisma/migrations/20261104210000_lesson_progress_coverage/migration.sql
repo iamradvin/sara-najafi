@@ -1,0 +1,2 @@
+ALTER TABLE "LessonProgress"
+ADD COLUMN "coveredSeconds" INTEGER NOT NULL DEFAULT 0;

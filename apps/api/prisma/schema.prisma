@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum CourseStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  ALL_LEVELS
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+enum EnrollmentSource {
+  FREE
+  MANUAL
+  PAYMENT
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  ZARINPAL
+  MANUAL
+}
+
+enum SmsOtpPurpose {
+  LOGIN
+  REGISTER
+}
+
+model User {
+  id             String           @id @default(uuid()) @db.Uuid
+  email          String?          @unique @db.VarChar(320)
+  phone          String?          @unique @db.VarChar(16)
+  name           String           @db.VarChar(160)
+  bio            String?          @db.Text
+  avatarUrl      String?          @db.VarChar(500)
+  passwordHash   String?          @db.VarChar(255)
+  status         UserStatus       @default(ACTIVE)
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @db.Timestamptz(3)
+  deletedAt      DateTime?        @db.Timestamptz(3)
+  roles          UserRole[]
+  sessions       Session[]
+  enrollments    Enrollment[]
+  orders         Order[]
+  lessonProgress LessonProgress[]
+  instructorCourses Course[]          @relation("CourseInstructor")
+  courseProgress CourseProgress[]
+  enrollmentHistory EnrollmentHistory[] @relation("EnrollmentActor")
+}
+
+model SmsOtpChallenge {
+  id         String        @id @default(uuid()) @db.Uuid
+  phone      String        @unique @db.VarChar(16)
+  codeHash   String        @db.VarChar(64)
+  purpose    SmsOtpPurpose
+  name       String?       @db.VarChar(160)
+  attempts   Int           @default(0)
+  createdAt  DateTime      @default(now()) @db.Timestamptz(3)
+  expiresAt  DateTime      @db.Timestamptz(3)
+  consumedAt DateTime?     @db.Timestamptz(3)
+
+  @@index([expiresAt])
+}
+
+model Session {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  tokenHash  String    @unique @db.VarChar(64)
+  expiresAt  DateTime  @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  lastUsedAt DateTime  @default(now()) @db.Timestamptz(3)
+  revokedAt  DateTime? @db.Timestamptz(3)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model Role {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String           @unique @db.VarChar(80)
+  description String?          @db.VarChar(255)
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  key         String           @unique @db.VarChar(120)
+  description String?          @db.VarChar(255)
+  roles       RolePermission[]
+}
+
+model UserRole {
+  userId String @db.Uuid
+  roleId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model RolePermission {
+  roleId       String     @db.Uuid
+  permissionId String     @db.Uuid
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model Category {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String           @db.VarChar(120)
+  slug        String           @unique @db.VarChar(140)
+  description String?          @db.Text
+  courses     CourseCategory[]
+  createdAt   DateTime         @default(now()) @db.Timestamptz(3)
+}
+
+model Course {
+  id               String           @id @default(uuid()) @db.Uuid
+  slug             String           @unique @db.VarChar(180)
+  title            String           @db.VarChar(180)
+  description      String           @db.Text
+  thumbnailUrl     String?          @db.VarChar(500)
+  status           CourseStatus     @default(DRAFT)
+  level            CourseLevel      @default(ALL_LEVELS)
+  priceToman       Int?
+  currency         String           @default("TOMAN") @db.VarChar(8)
+  language         String           @default("fa") @db.VarChar(12)
+  isFree           Boolean          @default(false)
+  estimatedMinutes Int              @default(0)
+  instructorId     String?          @db.Uuid
+  instructor       User?            @relation("CourseInstructor", fields: [instructorId], references: [id], onDelete: SetNull)
+  publishedAt      DateTime?        @db.Timestamptz(3)
+  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
+  deletedAt        DateTime?        @db.Timestamptz(3)
+  categories       CourseCategory[]
+  sections         CourseSection[]
+  enrollments      Enrollment[]
+  courseProgress   CourseProgress[]
+  orderItems       OrderItem[]
+
+  @@index([status, publishedAt])
+  @@index([deletedAt])
+  @@index([instructorId, status])
+}
+
+model CourseCategory {
+  courseId   String   @db.Uuid
+  categoryId String   @db.Uuid
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@id([courseId, categoryId])
+}
+
+model CourseSection {
+  id       String   @id @default(uuid()) @db.Uuid
+  courseId String   @db.Uuid
+  title    String   @db.VarChar(180)
+  position Int
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons  Lesson[]
+
+  @@unique([courseId, position])
+}
+
+model Lesson {
+  id          String           @id @default(uuid()) @db.Uuid
+  sectionId   String           @db.Uuid
+  title       String           @db.VarChar(180)
+  description String?          @db.Text
+  videoKey    String?          @db.VarChar(500)
+  durationSec Int              @default(0)
+  isPreview   Boolean          @default(false)
+  isPublished Boolean          @default(true)
+  position    Int
+  section     CourseSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  progress    LessonProgress[]
+  resources   LessonResource[]
+  lastAccessedBy CourseProgress[] @relation("LastAccessedLesson")
+
+  @@unique([sectionId, position])
+}
+
+model LessonResource {
+  id        String   @id @default(uuid()) @db.Uuid
+  lessonId  String   @db.Uuid
+  title     String   @db.VarChar(180)
+  url       String   @db.VarChar(1000)
+  fileName  String?  @db.VarChar(255)
+  mimeType  String?  @db.VarChar(120)
+  sizeBytes Int?
+  position  Int
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, position])
+  @@index([lessonId])
+}
+
+model Enrollment {
+  id         String           @id @default(uuid()) @db.Uuid
+  userId     String           @db.Uuid
+  courseId   String           @db.Uuid
+  status     EnrollmentStatus @default(ACTIVE)
+  source     EnrollmentSource @default(MANUAL)
+  enrolledAt DateTime         @default(now()) @db.Timestamptz(3)
+  expiresAt  DateTime?        @db.Timestamptz(3)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  course     Course           @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  history    EnrollmentHistory[]
+
+  @@unique([userId, courseId])
+  @@index([courseId, status])
+}
+
+model EnrollmentHistory {
+  id           String           @id @default(uuid()) @db.Uuid
+  enrollmentId String           @db.Uuid
+  actorId      String?          @db.Uuid
+  status       EnrollmentStatus
+  source       EnrollmentSource
+  reason       String?          @db.VarChar(500)
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+  enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  actor        User?            @relation("EnrollmentActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([enrollmentId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model Order {
+  id            String      @id @default(uuid()) @db.Uuid
+  orderNumber   String      @unique @db.VarChar(40)
+  userId        String      @db.Uuid
+  status        OrderStatus @default(PENDING)
+  subtotalToman Int
+  discountToman Int         @default(0)
+  totalToman    Int
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+  paidAt        DateTime?   @db.Timestamptz(3)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items         OrderItem[]
+  payments      Payment[]
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id             String @id @default(uuid()) @db.Uuid
+  orderId        String @db.Uuid
+  courseId       String @db.Uuid
+  courseTitle    String @db.VarChar(180)
+  unitPriceToman Int
+  order          Order  @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  course         Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  @@unique([orderId, courseId])
+}
+
+model Payment {
+  id                    String          @id @default(uuid()) @db.Uuid
+  orderId               String          @db.Uuid
+  provider              PaymentProvider
+  status                PaymentStatus   @default(PENDING)
+  amountToman           Int
+  providerAuthority     String?         @unique @db.VarChar(36)
+  providerTransactionId String?         @unique @db.VarChar(180)
+  createdAt             DateTime        @default(now()) @db.Timestamptz(3)
+  verifiedAt            DateTime?       @db.Timestamptz(3)
+  order                 Order           @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, status])
+}
+
+model LessonProgress {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  lessonId       String   @db.Uuid
+  watchedSeconds Int      @default(0)
+  coveredSeconds Int      @default(0)
+  isComplete     Boolean  @default(false)
+  lastWatchedAt  DateTime @default(now()) @db.Timestamptz(3)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson         Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model CourseProgress {
+  id                  String    @id @default(uuid()) @db.Uuid
+  userId              String    @db.Uuid
+  courseId            String    @db.Uuid
+  lastLessonId        String?   @db.Uuid
+  lastAccessedAt      DateTime  @default(now()) @db.Timestamptz(3)
+  completedAt         DateTime? @db.Timestamptz(3)
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course              Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lastLesson          Lesson?   @relation("LastAccessedLesson", fields: [lastLessonId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, courseId])
+  @@index([userId, lastAccessedAt])
+}
+
+model BrandSetting {
+  key       String   @id @db.VarChar(120)
+  value     Json
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}

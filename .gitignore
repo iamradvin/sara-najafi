@@ -1,0 +1,25 @@
+node_modules
+.next
+dist
+coverage
+.turbo
+/out
+.DS_Store
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+apps/api/prisma/*.db
+apps/api/uploads/
+2026-11-03 17.02.37.jpg
+2026-11-03 17.02.45.jpg
+2026-11-03 17.02.57.jpg
+2026-11-03 17.03.01.jpg
+2026-11-03 17.03.11.jpg
+2026-11-03 17.03.20.jpg
+# Superseded standalone site; the active application is in apps/web.
+/index.html
+/app.js
+/styles.css
+/public/
+apps/web/public/assets/

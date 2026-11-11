@@ -1,0 +1,32 @@
+{
+  "name": "@attractory/web",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@attractory/api-client": "workspace:*",
+    "@attractory/config": "workspace:*",
+    "@attractory/types": "workspace:*",
+    "@attractory/ui": "workspace:*",
+    "@attractory/utils": "workspace:*",
+    "@attractory/validators": "workspace:*",
+    "next": "^16.4.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.4",
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "eslint": "^9.39.0",
+    "eslint-config-next": "^16.4.4",
+    "tailwindcss": "^4.3.4",
+    "typescript": "~5.9.3"
+  }
+}

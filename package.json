@@ -1,0 +1,28 @@
+{
+  "name": "sara-najafi",
+  "private": true,
+  "packageManager": "pnpm@12.11.2",
+  "prisma": {
+    "schema": "apps/api/prisma/schema.prisma"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "pnpm exec turbo run build --filter=@attractory/api --filter=@attractory/worker && pnpm --filter @attractory/api test:integration",
+    "db:up": "docker compose up -d postgres redis",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @attractory/api db:migrate",
+    "db:migrate:deploy": "pnpm --filter @attractory/api db:migrate:deploy",
+    "db:seed": "pnpm --filter @attractory/api db:seed"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "turbo": "^2.5.8",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.0"
+  }
+}
